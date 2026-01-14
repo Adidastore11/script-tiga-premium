@@ -1,0 +1,185 @@
+#!/bin/bash
+clear
+
+# Proteksi file tidak ditemukan
+[[ -f /etc/slowdns/server.pub ]] && PUB=$(cat /etc/slowdns/server.pub) || PUB="-"
+[[ -f /etc/xray/dns ]] && NS=$(cat /etc/xray/dns) || NS="-"
+[[ -f /etc/xray/city ]] && CITY=$(cat /etc/xray/city) || CITY="-"
+domain=$(cat /etc/xray/domain)
+
+# Ambil user unik dari blok WS (hindari gRPC)
+CLIENT_LIST=$(awk '
+/"streamSettings"/ { in_stream = 1 }
+/"network"[ \t]*:[ \t]*"ws"/ { in_ws = 1 }
+/"network"[ \t]*:[ \t]*"grpc"/ { in_ws = 0 }
+/^\s*\]/ { in_ws = 0 }
+in_stream && in_ws && /#& / { print $0 }
+' /etc/xray/config.json | cut -d ' ' -f 2 | sort -u)
+
+NUMBER_OF_CLIENTS=$(echo "$CLIENT_LIST" | wc -l)
+
+if [[ ${NUMBER_OF_CLIENTS} == '0' ]]; then
+  echo -e "\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+  echo -e " \e[1;97;101m         CONFIG VLESS ACCOUNT           \e[0m"
+  echo -e "\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+  echo ""
+  echo "You have no existing clients!"
+  echo ""
+  echo -e "\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+  read -n 1 -s -r -p "Press [ Enter ] to back on menu vless"
+  vless
+fi
+
+echo -e "\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+echo -e "  \e[1;97;101m        CONFIG VLESS ACCOUNT         \E[0m"
+echo -e "\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+echo "     No  Expired   User"
+
+INDEX=0
+declare -a USER_LIST
+while read user; do
+  INDEX=$((INDEX + 1))
+  exp=$(grep -E "^#& ${user} " /etc/xray/config.json | head -n1 | cut -d ' ' -f3)
+  printf "     %s)  %s   %s\n" "$INDEX" "$exp" "$user"
+  USER_LIST+=("$user")
+done <<< "$CLIENT_LIST"
+
+until [[ ${CLIENT_NUMBER} -ge 1 && ${CLIENT_NUMBER} -le ${NUMBER_OF_CLIENTS} ]]; do
+  read -rp "Select one client [1-${NUMBER_OF_CLIENTS}]: " CLIENT_NUMBER
+done
+
+user=${USER_LIST[$((CLIENT_NUMBER - 1))]}
+
+# UUID
+uuid=$(grep -E "^### ${user} " /etc/vless/.vless.db | head -n1 | cut -d ' ' -f4)
+
+# Quota
+if [[ -f /etc/vless/$user ]]; then
+  raw_quota=$(cat /etc/vless/$user)
+  Quota=$(awk "BEGIN {printf \"%.2f\", $raw_quota / 1073741824}")
+else
+  Quota="-"
+fi
+
+# IP Limit
+[[ -f /etc/klmpk/limit/vless/ip/$user ]] && iplim=$(cat /etc/klmpk/limit/vless/ip/$user) || iplim="-"
+
+# Expired
+exp=$(grep -E "^#& ${user} " /etc/xray/config.json | head -n1 | cut -d ' ' -f3)
+
+# Masa aktif dan tanggal dibuat
+if [[ -n $exp ]]; then
+  exp_epoch=$(date -d "$exp" +%s)
+  now_epoch=$(date +%s)
+  sisa=$(( (exp_epoch - now_epoch) / 86400 ))
+  masaaktif=$sisa
+  tnggl=$(date -d "$sisa days ago" +"%d %b %Y")
+else
+  masaaktif="-"
+  tnggl="-"
+  exp="-"
+fi
+
+# Buat Link VLESS
+vlesslink1="vless://${uuid}@${domain}:443?path=/vless&security=tls&encryption=none&type=ws#${user}"
+vlesslink2="vless://${uuid}@${domain}:80?path=/vless&encryption=none&type=ws#${user}"
+vlesslink3="vless://${uuid}@${domain}:443?mode=gun&security=tls&encryption=none&type=grpc&serviceName=vless-grpc&sni=${domain}#${user}"
+
+# Simpan ke file OpenClash
+cat >/var/www/html/vless-$user.txt <<-END
+
+◇━━━━━━━━━━━━━━━━━◇
+  Dragon Emperor Tunneling 
+◇━━━━━━━━━━━━━━━━━◇
+# Format Vless WS TLS
+
+- name: Vless-$user-WS TLS
+  server: ${domain}
+  port: 443
+  type: vless
+  uuid: ${uuid}
+  cipher: auto
+  tls: true
+  skip-cert-verify: true
+  servername: ${domain}
+  network: ws
+  ws-opts:
+    path: /vless
+    headers:
+      Host: ${domain}
+
+# Format Vless WS Non TLS
+
+- name: Vless-$user-WS (CDN) Non TLS
+  server: ${domain}
+  port: 80
+  type: vless
+  uuid: ${uuid}
+  cipher: auto
+  tls: false
+  skip-cert-verify: false
+  servername: ${domain}
+  network: ws
+  ws-opts:
+    path: /vless
+    headers:
+      Host: ${domain}
+  udp: true
+
+# Format Vless gRPC (SNI)
+
+- name: Vless-$user-gRPC (SNI)
+  server: ${domain}
+  port: 443
+  type: vless
+  uuid: ${uuid}
+  cipher: auto
+  tls: true
+  skip-cert-verify: true
+  servername: ${domain}
+  network: grpc
+  grpc-opts:
+    grpc-mode: gun
+    grpc-service-name: vless-grpc
+
+◇━━━━━━━━━━━━━━━━━◇
+Link Akun Vless 
+◇━━━━━━━━━━━━━━━━━◇
+Link TLS      : ${vlesslink1}
+Link Non TLS  : ${vlesslink2}
+Link GRPC     : ${vlesslink3}
+◇━━━━━━━━━━━━━━━━━◇
+
+END
+
+# Tampilkan ke terminal
+clear
+echo -e "\033[1;93m====================\033[0m"
+echo -e " CREATE VLESS ACCOUNT           "
+echo -e "\033[1;93m====================\033[0m"
+echo -e "Remarks     : ${user}"
+echo -e "Domain      : ${domain}"
+echo -e "Host XrayDNS: ${NS}"
+echo -e "Pub Key     : ${PUB}"
+echo -e "User Quota  : ${Quota} GB"
+echo -e "Limit IP    : ${iplim} IP"
+echo -e "port TLS    : 443"
+echo -e "Port NTLS   : 80, 8080, 8081-9999"
+echo -e "port Grpc   : 443"
+echo -e "User ID     : ${uuid}"
+echo -e "Encryption  : none"
+echo -e "Path TLS    : /vless"
+echo -e "ServiceName : vless-grpc"
+echo -e "\033[1;93m====================\033[0m"
+echo -e "Link TLS    : ${vlesslink1}"
+echo -e "Link NTLS   : ${vlesslink2}"
+echo -e "Link GRPC   : ${vlesslink3}"
+echo -e "OpenClash   : https://${domain}:81/vless-$user.txt"
+echo -e "QR via TLS  : https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${vlesslink1}"
+echo -e "Aktif Selama: ${masaaktif} Hari"
+echo -e "Dibuat Pada : ${tnggl}"
+echo -e "Berakhir    : ${exp}"
+echo -e "\033[1;93m====================\033[0m"
+echo ""
+read -n 1 -s -r -p "Press [ Enter ] to back on menu"
+menu

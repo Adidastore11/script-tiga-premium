@@ -1,0 +1,72 @@
+#!/bin/bash
+
+# ================== WARNA ====================
+NC='\e[0m'
+BOLD='\e[1m'
+CYAN='\e[36m'
+PURPLE='\e[35m'
+RED='\e[31m'
+ORANGE='\e[38;5;214m'
+WHITE='\e[37m'
+YELLOW='\e[33m'
+
+# ================== TYPEWRITER HEADER ====================
+typewriter() {
+  local text="$1"
+  local delay="${2:-0.06}"
+  while IFS= read -r line; do
+    for ((i=0; i<${#line}; i++)); do
+      echo -ne "${CYAN}${line:$i:1}${NC}"
+      sleep $delay
+    done
+    echo ""
+  done <<< "$text"
+}
+
+# ================== IZIN ====================
+MYIP=$(curl -sS ipv4.icanhazip.com)
+data_ip="https://raw.githubusercontent.com/Adidastore11/izin/main/ip"
+data_server=$(curl -v --insecure --silent https://google.com/ 2>&1 | grep Date | sed -e 's/< Date: //')
+date_list=$(date +"%Y-%m-%d" -d "$data_server")
+useexp=$(wget -qO- $data_ip | grep $MYIP | awk '{print $3}')
+
+if [[ $date_list > $useexp ]]; then
+  echo -e "${RED}Permission Denied: VPS $MYIP telah kadaluarsa.${NC}"
+  echo -e "Silakan hubungi admin: ${CYAN}t.me/Adidastore11${NC}"
+  exit 1
+fi
+
+clear
+echo ""
+typewriter "INI ADALAH MENU TROJAN" 0.08
+sleep 0.5
+clear
+
+# ================== MENU DISPLAY ====================
+echo -e "${PURPLE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${BOLD}${YELLOW}《 Menu Trojan | トロイのメニュー 》${NC}"
+echo -e "${PURPLE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${WHITE} 1.) Buat Akun Trojan              ${CYAN}(アカウント作成)${NC}"
+echo -e "${WHITE} 2.) Trial Trojan                  ${CYAN}(トライアル)${NC}"
+echo -e "${WHITE} 3.) Hapus Akun Trojan             ${CYAN}(アカウント削除)${NC}"
+echo -e "${WHITE} 4.) Perpanjang Akun               ${CYAN}(延長)${NC}"
+echo -e "${WHITE} 5.) Cek Login Akun                ${CYAN}(ログイン確認)${NC}"
+echo -e "${WHITE} 6.) Detail Konfigurasi            ${CYAN}(詳細設定)${NC}"
+echo -e "${WHITE} 7.) Recovery Akun Trojan          ${CYAN}(アカウント復元)${NC}"
+echo -e "${PURPLE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo ""
+
+# ================== PILIH MENU ====================
+read -p "Pilih menu [1-7] : " menu
+echo ""
+
+case $menu in
+1) clear ; addtr ;;
+2) clear ; trialtr ;;
+3) clear ; deltr ;;
+4) clear ; renewtr ;;
+5) clear ; cektr ;;
+6) clear ; user-tr ;;
+7) clear ; recovery-tr ;;
+*) clear ; menu ;;
+esac

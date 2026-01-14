@@ -1,0 +1,95 @@
+#!/bin/bash
+DF='\e[39m'
+Bold='\e[1m'
+Blink='\e[5m'
+yell='\e[33m'
+red='\e[31m'
+green='\e[32m'
+blue='\e[34m'
+PURPLE='\e[35m'
+cyan='\e[36m'
+Lred='\e[91m'
+Lgreen='\e[92m'
+yellow='\e[93m'
+NC='\e[0m'
+GREEN='\033[0;32m'
+ORANGE='\033[0;33m'
+LIGHT='\033[0;37m'
+grenbo="\e[92;1m"
+
+function color_purple() { echo -e "\\033[35;1m${*}\\033[0m"; }
+function color_tyblue() { echo -e "\\033[36;1m${*}\\033[0m"; }
+function color_yellow() { echo -e "\\033[33;1m${*}\\033[0m"; }
+function color_green() { echo -e "\\033[32;1m${*}\\033[0m"; }
+function color_red() { echo -e "\\033[31;1m${*}\\033[0m"; }
+
+duration=6
+frames=("██10%" "█████35%" "█████████65%" "█████████████80%" "█████████████████████90%" "█████████████████████████100%")
+
+num_frames=${#frames[@]}
+num_iterations=$((duration))
+
+# Fungsi untuk animasi loading
+function Loading_Animasi() {
+    for ((i = 0; i < num_iterations; i++)); do
+        clear
+        index=$((i % num_frames))
+        color_code=$((31 + i % 7))
+        echo ""
+        echo ""
+        echo ""
+        echo -e "\e[1;${color_code}m ${frames[$index]}\e[0m"
+        sleep 0.5
+    done
+}
+
+# Fungsi untuk pesan sukses
+function Loading_Success() {
+    clear
+    echo -e  "\033[5;32mSuccess\033[0m"
+    sleep 1
+    clear
+}
+
+# Deklarasi variabel repository
+REPO="https://raw.githubusercontent.com/Andyyuda/P/main/ssh/"
+
+# Menampilkan tampilan awal
+clear
+echo -e "${blue} ------------------------- ${NC} "
+echo -e "${PURPLE}             FIXHAP            ${NC} "
+echo -e "${blue} ------------------------- ${NC} "
+echo -e ""
+
+# Input domain dari pengguna
+read -p "Input Your Domain: " domain
+
+# Menjalankan animasi loading
+Loading_Animasi
+Loading_Success
+
+# Mengupdate konfigurasi dengan domain baru
+rm -f /etc/xray/domain
+echo "${domain}" > /etc/xray/domain
+
+# Menghentikan layanan
+systemctl stop haproxy
+systemctl stop nginx
+
+# Mengunduh konfigurasi terbaru
+wget -O /etc/haproxy/haproxy.cfg "${REPO}haproxy.cfg" >/dev/null 2>&1
+wget -O /etc/nginx/conf.d/xray.conf "${REPO}xray.conf" >/dev/null 2>&1
+
+# Mengganti placeholder dengan domain yang dimasukkan
+sed -i "s/xxx/${domain}/g" /etc/haproxy/haproxy.cfg
+sed -i "s/xxx/${domain}/g" /etc/nginx/conf.d/xray.conf
+
+# Mengunduh konfigurasi nginx tambahan
+curl -s "${REPO}nginx.conf" -o /etc/nginx/nginx.conf
+
+# Menggabungkan sertifikat untuk Haproxy
+cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem >/dev/null
+
+# Menjalankan kembali layanan
+systemctl restart nginx
+systemctl restart haproxy

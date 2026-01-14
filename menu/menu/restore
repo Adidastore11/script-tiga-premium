@@ -1,0 +1,112 @@
+#!/bin/bash
+# ==========================================
+# Warna
+RED='\033[0;31m'
+NC='\033[0m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+
+# Ambil data dari bot
+CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
+KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
+export TIME="10"
+export URL="https://api.telegram.org/bot$KEY/sendMessage"
+
+clear
+
+# Fungsi notifikasi ke Telegram
+function notif_restore() {
+    echo -e "${GREEN}Mengirim Notifikasi Restore ke Telegram...${NC}"
+    TEXT="
+<code>◇━━━━━━━━━━━━━━◇</code>
+<b>  ⚠️ RESTORE NOTIF ⚠️</b>
+<b>     Detail Restore VPS</b>
+<code>◇━━━━━━━━━━━━━━◇</code>
+<code>Restore VPS Selesai</code>
+<code>◇━━━━━━━━━━━━━━◇</code>
+<code>BY BOT : @Andyyuda</code>
+"
+
+    curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
+}
+
+# ==========================================
+# Cek apakah gdown terinstall
+if ! command -v gdown &> /dev/null; then
+    echo -e "${CYAN}[INFO] gdown belum terinstal. Menginstal gdown...${NC}"
+    apt install python3-pip -y >/dev/null 2>&1
+    pip install gdown >/dev/null 2>&1
+
+    if ! command -v gdown &> /dev/null; then
+        echo -e "${RED}[ERROR] Instalasi gdown gagal. Silakan cek pip/python anda.${NC}"
+        exit 1
+    fi
+fi
+
+# ==========================================
+# Meminta input pengguna
+clear
+echo -e "${CYAN}Silakan Masukkan ID File Google Drive:${NC}"
+read -rp "File ID: " -e file_id
+
+echo -e "${CYAN}Masukkan Password ZIP:${NC}"
+read -s -rp "Password: " password_zip
+echo ""
+
+# Unduh file dari Google Drive
+echo -e "${CYAN}Mengunduh file dari Google Drive...${NC}"
+gdown --id "$file_id" -O backup.zip
+if [[ $? -ne 0 ]]; then
+    echo -e "${RED}Gagal mengunduh file dari Google Drive!${NC}"
+    exit 1
+fi
+
+# Mengekstrak file ZIP
+echo -e "${CYAN}Mengekstrak file backup...${NC}"
+unzip -P "$password_zip" backup.zip -d /root/ >/dev/null 2>&1
+if [[ $? -ne 0 ]]; then
+    echo -e "${RED}Gagal mengekstrak file! Periksa kembali password ZIP.${NC}"
+    rm -f backup.zip
+    exit 1
+fi
+
+rm -f backup.zip
+sleep 1
+
+# ==========================================
+# Proses restore
+echo -e "${GREEN}Mulai proses restore...${NC}"
+cd /root/backup || { echo -e "${RED}Folder backup tidak ditemukan!${NC}"; exit 1; }
+
+cp passwd /etc/
+cp group /etc/
+cp shadow /etc/
+cp gshadow /etc/
+cp -r klmpk /var/lib/
+cp -r xray /etc/
+cp -r html /var/www/
+cp crontab /etc/
+cp .ssh.db_recovery /etc/ssh/
+cp .vmess.db_recovery /etc/vmess/
+cp .vless.db_recovery /etc/vless/
+cp .trojan.db_recovery /etc/trojan/
+cp .ssh.db /etc/ssh/
+cp .vmess.db /etc/vmess/
+cp .vless.db /etc/vless/
+cp .trojan.db /etc/trojan/
+cp .shadowsocks.db /etc/shadowsocks/
+cp -r limit /etc/klmpk/
+cp -r vmess /etc/klmpk/limit/
+cp -r vless /etc/klmpk/limit/
+cp -r trojan /etc/klmpk/limit/
+cp -r shadowsocks /etc/klmpk/limit/
+cp -r regis /root/
+
+# ==========================================
+# Notifikasi ke Telegram
+notif_restore
+
+# Bersihkan folder sementara
+rm -rf /root/backup
+
+echo -e "${GREEN}Restore selesai!${NC}"

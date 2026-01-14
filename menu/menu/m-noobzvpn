@@ -1,0 +1,156 @@
+#!/bin/bash
+
+# Colors
+green='\e[0;32m'
+red='\e[31m'
+NC='\e[0m'
+ORANGE='\033[0;33m'
+
+# Telegram settings
+CHATID="1210833546"
+KEY="6006599143:AAEgstCAioq35JgX97HaW_G3TAkLKzLZS_w"
+URL="https://api.telegram.org/bot$KEY/sendMessage"
+TIME="10"
+
+# Install NoobzVpn-Server
+install_noobzvpn() {
+    wget --no-check-certificate https://konohagakure.klmpk.me:81/noobzvpns.zip
+    unzip noobzvpns.zip
+    bash install.sh
+    rm noobzvpns.zip
+    systemctl restart noobzvpns
+}
+
+# Add user
+add_noobvpn_user() {
+    clear
+    echo -e "${ORANGE}--- Add NoobVPN User ---${NC}"
+    read -p "Username: " username
+    read -p "Password: " password
+    read -p "Expired (days): " expired
+    read -p "Bandwidth (GB): " bandwidth
+    read -p "Device limit: " devices
+
+    noobzvpns add "$username" -p "$password" -e "$expired" -b "$bandwidth" -d "$devices"
+
+    domain=$(cat /etc/xray/domain)
+    TEXT="<b>NOOBZVPN ACCOUNT</b>%0A<b>Username:</b> <code>$username</code>%0A<b>Password:</b> <code>$password</code>%0A<b>Expired:</b> $expired hari%0A<b>Bandwidth:</b> $bandwidth GB%0A<b>Device:</b> $devices device%0A<b>Host:</b> $domain"
+    curl -s --max-time $TIME -d "chat_id=$CHATID&text=$TEXT&parse_mode=HTML" $URL >/dev/null
+
+    echo -e "\n${green}Akun berhasil dibuat!${NC}"
+    echo -e "Username : $username"
+    echo -e "Password : $password"
+    echo -e "Expired  : $expired hari"
+    echo -e "Bandwidth: $bandwidth GB"
+    echo -e "Device   : $devices device"
+    echo -e "Host     : $domain"
+}
+
+# Block user
+block_user() {
+    read -p "Username to block: " username
+    noobzvpns block "$username"
+}
+
+# Unblock user
+unblock_user() {
+    read -p "Username to unblock: " username
+    noobzvpns unblock "$username"
+}
+
+# Set expiration
+set_expiration() {
+    read -p "Username: " username
+    read -p "Expired in days: " days
+    noobzvpns edit "$username" -e "$days"
+}
+
+# Renew expiration
+renew_expiration() {
+    read -p "Username to renew: " username
+    noobzvpns renew "$username"
+}
+
+# Change password
+change_password() {
+    read -p "Username: " username
+    read -p "New password: " new_password
+    noobzvpns edit "$username" -p "$new_password"
+}
+
+# Rename user
+rename_user() {
+    read -p "Current username: " old
+    read -p "New username: " new
+    noobzvpns rename "$old" "$new"
+}
+
+# Remove user
+remove_user() {
+    read -p "Username to remove: " username
+    noobzvpns remove "$username"
+}
+
+# Remove all users
+remove_all_users() {
+    read -p "Are you sure you want to remove ALL users? (yes/no): " confirm
+    if [[ $confirm == "yes" ]]; then
+        noobzvpns opts --delete-all
+    else
+        echo "Cancelled."
+    fi
+}
+
+# Info single user
+info_user() {
+    read -p "Username: " username
+    noobzvpns print "$username"
+}
+
+# Info all users
+info_all_users() {
+    noobzvpns print-all
+}
+
+# UI Menu
+clear
+echo -e "\e[32mLoading...\e[0m"
+clear
+domain=$(cat /etc/xray/domain)
+
+echo -e "\033[1;93m┌────────────────────────────────────────────┐\033[0m"
+echo -e "               NoobzVpn Server Menu          "
+echo -e "\033[1;93m└────────────────────────────────────────────┘\033[0m"
+echo -e "${ORANGE}[1]${NC} Install NoobzVpn-Server"
+echo -e "${ORANGE}[2]${NC} Add User"
+echo -e "${ORANGE}[3]${NC} Block User"
+echo -e "${ORANGE}[4]${NC} Unblock User"
+echo -e "${ORANGE}[5]${NC} Set Expiration"
+echo -e "${ORANGE}[6]${NC} Renew Expiration"
+echo -e "${ORANGE}[7]${NC} Change Password"
+echo -e "${ORANGE}[8]${NC} Rename User"
+echo -e "${ORANGE}[9]${NC} Remove User"
+echo -e "${ORANGE}[10]${NC} Remove All Users"
+echo -e "${ORANGE}[11]${NC} Info User"
+echo -e "${ORANGE}[12]${NC} Info All Users"
+echo -e "${ORANGE}[13]${NC} Exit"
+
+read -rp "Select menu [1-13]: " menu
+echo ""
+
+case $menu in
+  1) install_noobzvpn ;;
+  2) add_noobvpn_user ;;
+  3) block_user ;;
+  4) unblock_user ;;
+  5) set_expiration ;;
+  6) renew_expiration ;;
+  7) change_password ;;
+  8) rename_user ;;
+  9) remove_user ;;
+ 10) remove_all_users ;;
+ 11) info_user ;;
+ 12) info_all_users ;;
+ 13) exit ;;
+ *) echo "Invalid option." ;;
+esac

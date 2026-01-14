@@ -1,0 +1,104 @@
+#!/bin/bash
+
+# ========== WARNA ==========
+NC="\033[0m"
+BOLD="\033[1m"
+WHITE="\033[1;37m"
+CYAN="\033[1;36m"
+RED="\033[1;31m"
+GREEN="\033[1;32m"
+YELLOW="\033[1;33m"
+ORANGE="\033[38;5;214m"
+MAGENTA="\033[1;35m"
+BLUE="\033[1;34m"
+
+# ========== TYPEWRITER FUNCTION ==========
+typewriter() {
+  local text="$1"
+  local delay="${2:-0.07}"
+  while IFS= read -r line; do
+    for ((i=0; i<${#line}; i++)); do
+      echo -ne "${BOLD}${CYAN}${line:$i:1}${NC}"
+      sleep $delay
+    done
+    echo ""
+  done <<< "$text"
+}
+
+# ========== CEK IZIN IP (optional) ==========
+MYIP=$(curl -sS ipv4.icanhazip.com)
+data_ip="https://raw.githubusercontent.com/Adidastore11/izin/main/ip"
+data_server=$(curl -v --insecure --silent https://google.com/ 2>&1 | grep Date | sed -e 's/< Date: //')
+date_list=$(date +"%Y-%m-%d" -d "$data_server")
+
+checking_sc() {
+  useexp=$(wget -qO- $data_ip | grep $MYIP | awk '{print $3}')
+  if [[ $date_list < $useexp ]]; then
+    echo -ne
+  else
+    echo -e "${RED}────────────────────────────────────────────${NC}"
+    echo -e "${WHITE}${BOLD}         404 NOT FOUND AUTOSCRIPT           ${NC}"
+    echo -e "${RED}────────────────────────────────────────────${NC}"
+    echo -e ""
+    echo -e "${RED} PERMISSION DENIED for VPS ${MYIP} ${NC}"
+    echo -e "${YELLOW} Hubungi Admin: t.me/Adidastore11 / wa.me/6282131861788${NC}"
+    echo -e "${RED}────────────────────────────────────────────${NC}"
+    exit
+  fi
+}
+checking_sc
+
+# ========== TAMPILKAN HEADER TYPEWRITER ==========
+clear
+echo ""
+typewriter "INI ADALAH MENU SSH" 0.07
+sleep 0.5
+
+# ========== TAMPILKAN MENU ==========
+
+echo -e "${BLUE}┌────────────────────────────────────────────────────┐${NC}"
+echo -e "${BOLD}${MAGENTA}             SSH & OpenVPN Panel 日本式               ${NC}"
+echo -e "${BLUE}└────────────────────────────────────────────────────┘${NC}"
+echo -e "${YELLOW}  [01]${NC} ${WHITE}Buat Akun SSH & OpenVPN         ${CYAN}（アカウント作成）"
+echo -e "${YELLOW}  [02]${NC} ${WHITE}Trial SSH & OpenVPN              ${CYAN}（トライアル）"
+echo -e "${YELLOW}  [03]${NC} ${WHITE}Perpanjang Masa Aktif            ${CYAN}（更新）"
+echo -e "${YELLOW}  [04]${NC} ${WHITE}Cek User Login SSH & OpenVPN     ${CYAN}（ログイン確認）"
+echo -e "${YELLOW}  [05]${NC} ${WHITE}Cek Login UDP Custom              ${CYAN}（UDPログイン）"
+echo -e "${YELLOW}  [06]${NC} ${WHITE}Daftar Member SSH & OpenVPN      ${CYAN}（メンバー一覧）"
+echo -e "${YELLOW}  [07]${NC} ${WHITE}Hapus Akun SSH & OpenVPN         ${CYAN}（アカウント削除）"
+echo -e "${YELLOW}  [08]${NC} ${WHITE}Hapus User Expired               ${CYAN}（期限切れ削除）"
+echo -e "${YELLOW}  [09]${NC} ${WHITE}Ganti Limit Akun SSH             ${CYAN}（制限変更）"
+echo -e "${YELLOW}  [10]${NC} ${WHITE}Cek Multi Login SSH              ${CYAN}（複数ログイン）"
+echo -e "${YELLOW}  [11]${NC} ${WHITE}Konfigurasi Akun SSH             ${CYAN}（設定）"
+echo -e "${YELLOW}  [12]${NC} ${WHITE}Buka Kunci Akun SSH              ${CYAN}（アンロック）"
+echo -e "${YELLOW}  [13]${NC} ${WHITE}Kunci Akun SSH                   ${CYAN}（ロック）"
+echo -e "${YELLOW}  [14]${NC} ${WHITE}ON/OFF Batas IP SSH              ${CYAN}（IP制限）"
+echo -e "${YELLOW}  [15]${NC} ${WHITE}Recovery SSH dari Database       ${CYAN}（復元）"
+echo -e "${YELLOW}  [16]${NC} ${WHITE}Keluar Panel                     ${CYAN}（終了）"
+echo -e "${BLUE}────────────────────────────────────────────────────${NC}"
+echo ""
+
+# ========== INPUT ==========
+read -p " Pilih opsi [01 - 16] : " menu
+echo ""
+
+# ========== LOGIKA ARAH ==========
+case $menu in
+1) addssh ;;
+2) trial ;;
+3) renewssh ;;
+4) ceklim ;;
+5) cekudp ;;
+6) member ;;
+7) delssh ;;
+8) delexp ;;
+9) ganti-ip ;;
+10) cekssh ;;
+11) user-ssh ;;
+12) unlock ;;
+13) lock ;;
+14) andy-on-off ;;
+15) recovery-ssh ;;
+16 | 0 | x) clear ; exit ;;
+*) clear ; menu ;;
+esac

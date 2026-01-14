@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# Fungsi untuk unlock VMess account
+function unlock_vmess {
+    sed -i "/### ${username} /{n;s/^#//}" /etc/xray/config.json
+    systemctl restart xray > /dev/null 2>&1
+    echo "VMess account ${username} telah di-unlock."
+}
+
+# Fungsi untuk unlock VLESS account
+function unlock_vless {
+    sed -i "/### ${username} /{n;s/^#//}" /etc/xray/config.json
+    systemctl restart xray > /dev/null 2>&1
+    echo "VLESS account ${username} telah di-unlock."
+}
+
+# Fungsi untuk unlock Trojan account
+function unlock_trojan {
+    sed -i "/### ${username} /{n;s/^#//}" /etc/xray/config.json
+    systemctl restart xray > /dev/null 2>&1
+    echo "Trojan account ${username} telah di-unlock."
+}
+
+# Memeriksa apakah argumen diberikan
+if [ $# -ne 2 ]; then
+    echo "Penggunaan: $0 [vmess|vless|trojan] username"
+    exit 1
+fi
+
+# Menangkap argumen
+service_type=$1
+username=$2
+
+# Memanggil fungsi yang sesuai berdasarkan argumen
+case $service_type in
+    vmess)
+        unlock_vmess
+        ;;
+    vless)
+        unlock_vless
+        ;;
+    trojan)
+        unlock_trojan
+        ;;
+    *)
+        echo "Pilihan tidak valid. Gunakan: $0 [vmess|vless|trojan] username"
+        exit 1
+        ;;
+esac

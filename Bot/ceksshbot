@@ -1,0 +1,34 @@
+#!/bin/bash
+export TERM=xterm
+touch /root/.system
+echo "───────────────────────────────────────"
+echo "            USER LOGIN SSH"
+echo "───────────────────────────────────────"
+echo "    LOGIN IP    LIMIT IP    USERNAME"
+
+mulog=$(cekssh)
+data=( $(cat /etc/passwd | grep home | cut -d ' ' -f 1 | cut -d : -f 1) )
+
+for user in "${data[@]}"
+do
+    cekcek=$(echo "$mulog" | grep "$user" | wc -l)
+    if [[ $cekcek -gt 0 ]]; then
+        limit_file="/etc/klmpk/limit/ssh/ip/$user"
+
+        # Cek apakah file limit ada, jika tidak buat otomatis dengan isi default "1"
+        if [[ ! -f "$limit_file" ]]; then
+            echo "1" > "$limit_file"
+        fi
+
+        iplimit=$(cat "$limit_file")
+        printf "  %-13s %-7s %-8s %2s\n" "     $cekcek IP        $iplimit IP      $user"
+        echo "slot" >> /root/.system
+    fi
+    sleep 0.1
+done
+
+aktif=$(cat /root/.system | wc -l)
+echo "───────────────────────────────────────"
+echo "            $aktif User Online"
+echo "───────────────────────────────────────"
+rm -f /root/.system

@@ -1,0 +1,81 @@
+#!/bin/bash
+
+# Warna
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+# Efek ketik per huruf
+type_effect() {
+    local text="$1"
+    for ((i=0; i<${#text}; i++)); do
+        echo -ne "${CYAN}${text:$i:1}${NC}"
+        sleep 0.03
+    done
+    echo ""
+}
+
+# Status Bot
+bot_regis=$(systemctl status regis | grep Active | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
+if [[ $bot_regis == "running" ]]; then 
+   status_bot="${GREEN}Online${NC}"
+else
+   status_bot="${RED}Offline${NC}"
+fi
+
+# Cek izin
+ipsaya=$(curl -sS ipv4.icanhazip.com)
+data_server=$(curl -v --insecure --silent https://google.com/ 2>&1 | grep Date | sed -e 's/< Date: //')
+date_list=$(date +"%Y-%m-%d" -d "$data_server")
+data_ip="https://raw.githubusercontent.com/Adidastore11/izin/main/ip"
+checking_sc() {
+  useexp=$(wget -qO- $data_ip | grep $ipsaya | awk '{print $3}')
+  if [[ $date_list < $useexp ]]; then
+    echo -ne
+  else
+    echo -e "\033[1;93m────────────────────────────────────────────\033[0m"
+    echo -e "\033[42m          404 NOT FOUND AUTOSCRIPT          \033[0m"
+    echo -e "\033[1;93m────────────────────────────────────────────\033[0m"
+    echo -e ""
+    echo -e "            ${RED}PERMISSION DENIED !${NC}"
+    echo -e "   \033[0;33mYour VPS${NC} $ipsaya \033[0;33mHas been Banned${NC}"
+    echo -e "     \033[0;33mBuy access permissions for scripts${NC}"
+    echo -e "             \033[0;33mContact Admin :${NC}"
+    echo -e "      \033[0;36mTelegram${NC} t.me/Adidastore11"
+    echo -e "      ${GREEN}WhatsApp${NC} wa.me/6282131861788"
+    echo -e "\033[1;93m────────────────────────────────────────────\033[0m"
+    sleep 5
+    reboot
+  fi
+}
+checking_sc
+
+clear
+type_effect "INI ADALAH MENU BOT TELEGRAM"
+echo -e "${CYAN}『 テレグラムボットメニュー | Telegram Bot Menu 』${NC}"
+echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "📶 Status Bot : ${status_bot}"
+echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+
+# Menu
+echo -e " ${GREEN}1.${NC} Tambah Bot Panel ${CYAN}(ボット追加)${NC}"
+echo -e " ${GREEN}2.${NC} Hapus Bot Panel ${CYAN}(ボット削除)${NC}"
+echo -e " ${GREEN}3.${NC} Hentikan Bot Panel ${CYAN}(ボット停止)${NC}"
+echo -e " ${GREEN}4.${NC} Mulai Ulang Bot Panel ${CYAN}(再起動)${NC}"
+echo -e " ${GREEN}0.${NC} Kembali ke Menu Utama ${CYAN}(メインメニューへ戻る)${NC}"
+echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+
+# Input
+read -p " Pilih menu [0-4]: " opt
+echo ""
+
+case $opt in
+1) clear; curl -o /usr/local/sbin/klmpkbot https://raw.githubusercontent.com/Adidastore11/P/main/Bot/klmpkbot.sh && chmod +x /usr/local/sbin/klmpkbot ;;
+2) clear; hapus-bot ;;
+3) clear; stop-bot ;;
+4) clear; restart-bot ;;
+0) clear; menu ;;
+*) echo -e "${RED}❌ Pilihan tidak valid!${NC}" && sleep 2 && exec "$0" ;;
+esac

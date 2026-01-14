@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# ========== WARNA ==========
+NC="\033[0m"
+BOLD="\033[1m"
+CYAN="\033[1;36m"
+MAGENTA="\033[1;35m"
+WHITE="\033[1;37m"
+RED="\033[1;31m"
+
+# ========== TYPEWRITER EFFECT ==========
+typewriter() {
+  local text="$1"
+  local delay="${2:-0.07}"
+  while IFS= read -r line; do
+    for ((i=0; i<${#line}; i++)); do
+      echo -ne "${BOLD}${CYAN}${line:$i:1}${NC}"
+      sleep $delay
+    done
+    echo ""
+  done <<< "$text"
+}
+
+# ========== HEADER ANIMASI ==========
+clear
+echo ""
+typewriter "INI ADALAH MENU BACKUP" 0.08
+sleep 0.6
+
+# ========== TAMPILKAN MENU BACKUP ==========
+clear
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${MAGENTA}${BOLD}《 バックアップメニュー (Menu Backup) 》${NC}"
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${WHITE} 1.) バックアップデータ       ${CYAN}(Backup VPS Data)${NC}"
+echo -e "${WHITE} 2.) リストアデータ           ${CYAN}(Restore VPS Data)${NC}"
+echo -e "${WHITE} 3.) オートバックアップ       ${CYAN}(AutoBackup VPS)${NC}"
+echo -e "${WHITE} 4.) テレグラムへ保存         ${CYAN}(Backup via Telegram)${NC}"
+echo -e "${CYAN}──────────────────────────────────────────────────────${NC}"
+echo -e "${RED} 0.) 戻る                     ${WHITE}(Kembali ke Menu)${NC}"
+echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e ""
+
+# ========== INPUT USER ==========
+read -p " Pilih menu [1-4 / 0] : " opt
+echo -e ""
+
+# ========== LOGIKA PILIHAN ==========
+case $opt in
+01 | 1) clear ; backup ;;
+02 | 2) clear ; restore ;;
+03 | 3) clear ; autobackup ;;
+04 | 4) clear ; mbot ;;
+00 | 0) clear ; menu ;;
+*) clear ; menu-backup ;;
+esac

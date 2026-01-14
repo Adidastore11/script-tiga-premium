@@ -1,0 +1,158 @@
+#!/bin/bash
+# Restore akun SSH dari database recovery
+# By: @andyyuda
+
+RECOVERY_DB="/etc/ssh/.ssh.db_recovery"
+LIMIT_DIR="/etc/klmpk/limit/ssh/ip"
+
+# Load info VPS
+export IP=$(cat /root/.myip)
+export ISP=$(cat /root/.isp)
+export CITY=$(cat /root/.city)
+domain=$(cat /etc/xray/domain)
+NS=$(cat /etc/xray/dns)
+PUB=$(cat /etc/slowdns/server.pub)
+
+echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "        Restore Akun SSH       "
+echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+read -p "Masukkan Username yang ingin direstore: " Login
+
+DATA=$(grep -w "^#ssh# $Login" "$RECOVERY_DB")
+if [[ -z "$DATA" ]]; then
+    echo -e "❌ Username tidak ditemukan di database recovery."
+    exit 1
+fi
+
+Pass=$(echo "$DATA" | awk '{print $3}')
+Quota=$(echo "$DATA" | awk '{print $4}')
+read -p "Masukkan Expired Baru (dalam hari): " masaaktif
+read -p "Masukkan Limit IP Baru (angka): " iplimit
+
+expe=$(date -d "$masaaktif days" +"%d %b, %Y")
+expi=$(date -d "$masaaktif days" +"%Y-%m-%d")
+tgl2=$(date +"%d")
+bln2=$(date +"%b")
+thn2=$(date +"%Y")
+tnggl="$tgl2 $bln2, $thn2"
+
+useradd -e "$expi" -s /bin/false -M "$Login"
+echo -e "$Pass\n$Pass\n" | passwd "$Login" &>/dev/null
+
+if [[ "$Quota" != "0" ]]; then
+    d=$((${Quota} * 1024 * 1024 * 1024))
+    echo "$d" > /etc/ssh/$Login
+fi
+
+# Restore IP Limit
+if [[ "$iplimit" != "0" ]]; then
+    mkdir -p "$LIMIT_DIR"
+    echo "$iplimit" > "$LIMIT_DIR/$Login"
+fi
+
+grep -vwE "^#ssh# $Login" "$RECOVERY_DB" > /tmp/.temp_restore
+mv /tmp/.temp_restore "$RECOVERY_DB"
+echo "#ssh# $Login $Pass $Quota $iplimit $expi active" >> "$RECOVERY_DB"
+
+echo ""
+echo -e "\033[1;93m---------------------------------------------------\033[0m"
+echo -e " SSH OVPN Account    "
+echo -e "\033[1;93m---------------------------------------------------\033[0m"
+echo -e "Username         : $Login"
+echo -e "Password         : $Pass"
+echo -e "Limit Ip         : ${iplimit} User"
+echo -e "Host             : $domain"
+echo -e "Host Slowdns     : ${NS}"
+echo -e "Pub Key          : ${PUB}"
+echo -e "Location         : $CITY"
+echo -e "ISP              : $ISP"
+echo -e "Port OpenSSH     : 443, 80, 22"
+echo -e "Port DNS         : 443, 53 ,22 "
+echo -e "Port SSH UDP     : 1-65535,1-7200,1-7300,1-10000"
+echo -e "Port Dropbear    : 443, 109 ,143"
+echo -e "Port SSH WS      : 80,8080,8880,2086,2095"
+echo -e "Port SSH SSL WS  : 443"
+echo -e "Port SSL/TLS     : 443"
+echo -e "Port OVPN WS SSL : 443"
+echo -e "Port OVPN SSL    : 443"
+echo -e "Port OVPN TCP    : 443, 1194"
+echo -e "Port OVPN UDP    : 2200"
+echo -e "BadVPN UDP       : 7100, 7300, 7300"
+echo -e "\033[1;93m---------------------------------------------------\033[0m"
+echo -e " Port 80 : $domain:80@$Login:$Pass"
+echo -e " Port 443 : $domain:443@$Login:$Pass"
+echo -e " Udp Custom : $domain:1-65535@$Login:$Pass"
+echo -e " Udp Custom2 : $domain:1-7200@$Login:$Pass"
+echo -e " Udp Custom3 : $domain:1-7300@$Login:$Pass"
+echo -e " Udp Custom4 : $domain:1-10000@$Login:$Pass"
+echo -e "\033[1;93m---------------------------------------------------\033[0m"
+echo -e "Payload      : GET / HTTP/1.1[crlf]Host: [host][crlf]Connection: Upgrade[crlf]User-Agent: [ua][crlf]Upgrade: websocket[crlf][crlf]"
+echo -e "\033[1;93m---------------------------------------------------\033[0m"
+echo -e "OVPN Download    : https://$domain:81/"
+echo -e "\033[1;93m---------------------------------------------------\033[0m"
+echo -e "Save Link Account: https://$domain:81/ssh-$Login.txt"
+echo -e "\033[1;93m---------------------------------------------------\033[0m"
+echo -e "Aktif Selama     : $masaaktif Hari"
+echo -e "Dibuat Pada      : $tnggl"
+echo -e "Berakhir Pada    : $expe"
+echo -e "----------------------------------------------------------------------"
+echo -e "       Terima Kasih Telah Menggunakan     "
+echo -e "            Premium Script                      "
+echo -e "       Andyyuda Tunneling             "
+echo -e "----------------------------------------------------------------------"
+
+hasil_ssh=$(cat <<EOF
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      SSH OVPN Account
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Username        : $Login
+Password        : $Pass
+Limit IP        : ${iplimit} User
+Host            : $domain
+Host Slowdns    : ${NS}
+Pub Key         : ${PUB}
+Location        : $CITY
+ISP             : $ISP
+Port OpenSSH    : 443, 80, 22
+Port DNS        : 443, 53, 22
+Port SSH UDP    : 1-65535,1-7200,1-7300,1-10000
+Port Dropbear   : 443, 109, 143
+Port SSH WS     : 80, 8080, 8880, 2086, 2095
+Port SSH SSL WS : 443
+Port SSL/TLS    : 443
+Port OVPN WS    : 443
+Port OVPN SSL   : 443
+Port OVPN TCP   : 443, 1194
+Port OVPN UDP   : 2200
+BadVPN UDP      : 7100, 7300, 7300
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Format Akun:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Port 80         : $domain:80@$Login:$Pass
+Port 443        : $domain:443@$Login:$Pass
+UDP Custom      : $domain:1-65535@$Login:$Pass
+UDP Custom2     : $domain:1-7200@$Login:$Pass
+UDP Custom3     : $domain:1-7300@$Login:$Pass
+UDP Custom4     : $domain:1-10000@$Login:$Pass
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Payload:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GET / HTTP/1.1[crlf]Host: [host][crlf]Connection: Upgrade[crlf]User-Agent: [ua][crlf]Upgrade: websocket[crlf][crlf]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OVPN Download   : https://$domain:81/
+Save Link       : https://$domain:81/ssh-$Login.txt
+Aktif Selama    : $masaaktif Hari
+Dibuat Pada     : $tnggl
+Berakhir Pada   : $expe
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Terima kasih telah menggunakan
+      Premium Script
+    Andyyuda Tunneling
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EOF
+)
+
+echo "$hasil_ssh" > /root/home/ssh-$Login.txt

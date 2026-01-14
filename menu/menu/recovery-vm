@@ -1,0 +1,165 @@
+#!/bin/bash
+# Script: recovery-vmess.sh
+# Restore akun VMess dari database recovery
+
+RECOVERY_DB="/etc/vmess/.vmess.db_recovery"
+LIMIT_DIR="/etc/klmpk/limit/vmess/ip"
+VMESS_DIR="/etc/vmess"
+
+# Load data VPS
+domain=$(cat /etc/xray/domain)
+NS=$(cat /etc/xray/dns)
+PUB=$(cat /etc/slowdns/server.pub)
+CITY=$(cat /root/.city)
+ISP=$(cat /root/.isp)
+IP=$(cat /root/.myip)
+
+echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo -e "      Restore Akun VMess       "
+echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+read -p "Masukkan Username yang ingin direstore: " user
+
+DATA=$(grep -w "^### $user" "$RECOVERY_DB")
+if [[ -z "$DATA" ]]; then
+  echo -e "❌ Username tidak ditemukan di database recovery."
+  exit 1
+fi
+
+uuid=$(echo "$DATA" | awk '{print $4}')
+
+read -p "Masukkan Expired Baru (dalam hari): " masaaktif
+read -p "Masukkan Kuota Baru (GB): " Quota
+read -p "Masukkan Limit IP Baru: " iplimit
+
+exp=$(date -d "$masaaktif days" +"%Y-%m-%d")
+tgl=$(date -d "$masaaktif days" +"%d")
+bln=$(date -d "$masaaktif days" +"%b")
+thn=$(date -d "$masaaktif days" +"%Y")
+expe="$tgl $bln, $thn"
+tgl2=$(date +"%d")
+bln2=$(date +"%b")
+thn2=$(date +"%Y")
+tnggl="$tgl2 $bln2, $thn2"
+
+sed -i '/#vmess$/a\### '"$user $exp"'\
+},{"id": "'$uuid'","alterId": 0,"email": "'$user'"' /etc/xray/config.json
+sed -i '/#vmessgrpc$/a\### '"$user $exp"'\
+},{"id": "'$uuid'","alterId": 0,"email": "'$user'"' /etc/xray/config.json
+
+# Simpan quota
+[ -d "$VMESS_DIR" ] || mkdir -p "$VMESS_DIR"
+if [[ "$Quota" != "0" ]]; then
+  d=$((${Quota} * 1024 * 1024 * 1024))
+  echo "$d" > $VMESS_DIR/$user
+fi
+
+# Simpan IP limit
+[ -d "$LIMIT_DIR" ] || mkdir -p "$LIMIT_DIR"
+echo "$iplimit" > "$LIMIT_DIR/$user"
+
+# Update db utama
+grep -vwE "^### $user" "$VMESS_DIR/.vmess.db" > /tmp/.temp_vm
+mv /tmp/.temp_vm "$VMESS_DIR/.vmess.db"
+echo "### $user $exp $uuid $Quota $iplimit" >> "$VMESS_DIR/.vmess.db"
+
+# Update recovery DB
+grep -vwE "^### $user" "$RECOVERY_DB" > /tmp/.temp_restore
+mv /tmp/.temp_restore "$RECOVERY_DB"
+echo "### $user $exp $uuid $Quota $iplimit active" >> "$RECOVERY_DB"
+
+# Buat link vmess
+vmesslink1=$(echo -n "{
+  \"v\": \"2\",
+  \"ps\": \"$user\",
+  \"add\": \"$domain\",
+  \"port\": \"443\",
+  \"id\": \"$uuid\",
+  \"aid\": \"0\",
+  \"net\": \"ws\",
+  \"path\": \"/vmess\",
+  \"type\": \"none\",
+  \"host\": \"$domain\",
+  \"tls\": \"tls\"
+}" | base64 -w 0)
+
+vmesslink2=$(echo -n "{
+  \"v\": \"2\",
+  \"ps\": \"$user\",
+  \"add\": \"$domain\",
+  \"port\": \"80\",
+  \"id\": \"$uuid\",
+  \"aid\": \"0\",
+  \"net\": \"ws\",
+  \"path\": \"/vmess\",
+  \"type\": \"none\",
+  \"host\": \"$domain\",
+  \"tls\": \"none\"
+}" | base64 -w 0)
+
+vmesslink3=$(echo -n "{
+  \"v\": \"2\",
+  \"ps\": \"$user\",
+  \"add\": \"$domain\",
+  \"port\": \"443\",
+  \"id\": \"$uuid\",
+  \"aid\": \"0\",
+  \"net\": \"grpc\",
+  \"path\": \"vmess-grpc\",
+  \"type\": \"none\",
+  \"host\": \"$domain\",
+  \"tls\": \"tls\"
+}" | base64 -w 0)
+
+# Tampilkan hasil
+clear
+echo -e "\033[1;93m---------------------------------------------------\033[0m"
+echo -e " Xray/Vmess Account "
+echo -e "\033[1;93m---------------------------------------------------\033[0m"
+echo -e "Remarks          : ${user}"
+echo -e "Domain           : ${domain}"
+echo -e "User Quota       : ${Quota} GB"
+echo -e "User IP Limit    : ${iplimit} IP"
+echo -e "Port TLS         : 400-900"
+echo -e "Port None TLS WS : 80,8880,8080"
+echo -e "UUID             : ${uuid}"
+echo -e "Location         : $CITY"
+echo -e "ISP              : $ISP"
+echo -e "alterId          : 0"
+echo -e "Security         : auto"
+echo -e "Network          : ws / grpc"
+echo -e "Path             : /vmess"
+echo -e "Dynamic Path     : https://bugmu.com/vmess"
+echo -e "ServiceName      : vmess-grpc"
+echo -e "\033[0;34m---------------------------------------------------\033[0m"
+echo -e "Link TLS         : vmess://$vmesslink1"
+echo -e "\033[0;34m---------------------------------------------------\033[0m"
+echo -e "Link none TLS    : vmess://$vmesslink2"
+echo -e "\033[0;34m---------------------------------------------------\033[0m"
+echo -e "Link GRPC        : vmess://$vmesslink3"
+echo -e "\033[0;34m---------------------------------------------------\033[0m"
+echo -e "Format OpenClash : https://${domain}:81/vmess-$user.txt"
+echo -e "\033[0;34m---------------------------------------------------\033[0m"
+echo -e "Aktif Selama     : $masaaktif Hari"
+echo -e "Dibuat Pada      : $tnggl"
+echo -e "Berakhir Pada    : $expe"
+echo -e "----------------------------------------------------------------------"
+echo -e "       Terima Kasih Telah Menggunakan     "
+echo -e "              Premium Script              "
+echo -e "         Andyyuda Tunneling               "
+echo -e "----------------------------------------------------------------------"
+
+# Simpan ke file
+hasil_vmess=$(cat <<EOF
+Link TLS         : vmess://$vmesslink1
+Link Non TLS     : vmess://$vmesslink2
+Link gRPC        : vmess://$vmesslink3
+Aktif            : $masaaktif Hari
+Dibuat           : $tnggl
+Expired          : $expe
+Domain           : $domain
+UUID             : $uuid
+Quota            : ${Quota} GB
+IP Limit         : ${iplimit} IP
+EOF
+)
+echo "$hasil_vmess" > /root/home/vmess-$user.txt

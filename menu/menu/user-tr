@@ -1,0 +1,140 @@
+#!/bin/bash
+clear
+
+# Handle file tidak tersedia
+[[ -f /etc/slowdns/server.pub ]] && PUB=$(cat /etc/slowdns/server.pub) || PUB="-"
+[[ -f /etc/xray/dns ]] && NS=$(cat /etc/xray/dns) || NS="-"
+[[ -f /etc/xray/city ]] && CITY=$(cat /etc/xray/city) || CITY="-"
+domain=$(cat /etc/xray/domain)
+
+# Ambil user unik dari blok Trojan
+CLIENT_LIST=$(grep -E "^#! " "/etc/xray/config.json" | cut -d ' ' -f 2 | sort -u)
+NUMBER_OF_CLIENTS=$(echo "$CLIENT_LIST" | wc -l)
+
+if [[ ${NUMBER_OF_CLIENTS} == '0' ]]; then
+  echo -e "\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+  echo -e " \e[1;97;101m               CONFIG TROJAN ACCOUNT                   \e[0m"
+  echo -e "\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+  echo ""
+  echo "You have no existing clients!"
+  echo ""
+  echo -e "\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+  read -n 1 -s -r -p "Press [ Enter ] to back on menu trojan"
+  trojan
+fi
+
+echo -e "\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+echo -e " \e[1;97;101m               CONFIG TROJAN ACCOUNT                 \E[0m"
+echo -e "\033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+echo "     No  Expired   User"
+
+INDEX=0
+declare -a USER_LIST
+while read user; do
+  INDEX=$((INDEX + 1))
+  exp=$(grep -E "^#! ${user} " /etc/xray/config.json | head -n1 | cut -d ' ' -f3)
+  printf "     %s)  %s   %s\n" "$INDEX" "$exp" "$user"
+  USER_LIST+=("$user")
+done <<< "$CLIENT_LIST"
+
+until [[ ${CLIENT_NUMBER} -ge 1 && ${CLIENT_NUMBER} -le ${NUMBER_OF_CLIENTS} ]]; do
+  read -rp "Select one client [1-${NUMBER_OF_CLIENTS}]: " CLIENT_NUMBER
+done
+
+user=${USER_LIST[$((CLIENT_NUMBER - 1))]}
+
+# UUID
+uuid=$(grep -E "^### ${user} " /etc/trojan/.trojan.db | cut -d ' ' -f4 | head -n1)
+
+# Quota
+if [[ -f /etc/trojan/.trojan.db ]]; then
+  raw_quota=$(grep -E "^### ${user} " /etc/trojan/.trojan.db | cut -d ' ' -f5 | head -n1)
+  Quota=$(awk "BEGIN {printf \"%.2f\", $raw_quota / 1073741824}")
+else
+  Quota="-"
+fi
+
+# IP Limit
+[[ -f /etc/klmpk/limit/trojan/ip/$user ]] && iplim=$(cat /etc/klmpk/limit/trojan/ip/$user) || iplim="-"
+
+# Expired
+exp=$(grep -E "^#! ${user} " /etc/xray/config.json | cut -d ' ' -f3 | head -n1)
+
+# Link
+trojanlink="trojan://${uuid}@${domain}:443?path=%2Ftrojan-ws&security=tls&host=${domain}&type=ws&sni=${domain}#${user}"
+trojanlink1="trojan://${uuid}@${domain}:443?mode=gun&security=tls&type=grpc&serviceName=trojan-grpc&sni=${domain}#${user}"
+trojanlink2="trojan://${uuid}@${domain}:80?path=%2Ftrojan-ws&security=none&host=${domain}&type=ws#${user}"
+
+# Save Config
+cat >/var/www/html/trojan-$user.txt <<-END
+◇━━━━━━━━━━━━━━━━━◇
+  Dragon Emperor Tunneling 
+◇━━━━━━━━━━━━━━━━━◇
+
+# Format Trojan GO/WS
+
+- name: Trojan-$user-GO/WS
+  server: ${domain}
+  port: 443
+  type: trojan
+  password: ${uuid}
+  network: ws
+  sni: ${domain}
+  skip-cert-verify: true
+  udp: true
+  ws-opts:
+    path: /trojan-ws
+    headers:
+        Host: ${domain}
+
+# Format Trojan gRPC
+
+- name: Trojan-$user-gRPC
+  type: trojan
+  server: ${domain}
+  port: 443
+  password: ${uuid}
+  udp: true
+  sni: ${domain}
+  skip-cert-verify: true
+  network: grpc
+  grpc-opts:
+    grpc-service-name: trojan-grpc
+
+◇━━━━━━━━━━━━━━━━━◇
+Link WS          : ${trojanlink}
+Link Non TLS WS  : ${trojanlink2}
+Link GRPC        : ${trojanlink1}
+END
+
+# Tampilkan ke layar
+clear
+echo -e "\033[1;93m====================\033[0m"
+echo -e " CREATE TROJAN ACCOUNT          "
+echo -e "\033[1;93m====================\033[0m"
+echo -e "Remarks          : ${user}" 
+echo -e "Host/IP          : ${domain}"
+echo -e "Host XrayDNS     : ${NS}"
+echo -e "Pub Key          : ${PUB}"
+echo -e "Quota            : ${Quota} GB"
+echo -e "Limit IP         : ${iplim} IP"
+echo -e "port TLS/WS      : 443" 
+echo -e "port None TLS/WS : 80,8880,8080"
+echo -e "port GRPC        : 443"
+echo -e "Key              : ${uuid}" 
+echo -e "Security         : auto"
+echo -e "Network          : ws"
+echo -e "Dynamic          : http://bugmu.com/path"
+echo -e "Path             : /trojan-ws" 
+echo -e "ServiceName      : trojan-grpc" 
+echo -e "\033[0;34m====================\033[0m" 
+echo -e "Link WS          : ${trojanlink}" 
+echo -e "Link Non TLS WS  : ${trojanlink2}" 
+echo -e "Link GRPC        : ${trojanlink1}" 
+echo -e "OpenClash Config : https://${domain}:81/trojan-$user.txt"
+echo -e "QR Code (WS)     : https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${trojanlink}"
+echo -e "Expired          : $exp"
+echo -e "\033[0;34m====================\033[0m" 
+echo "" 
+read -n 1 -s -r -p "Press [ Enter ] to back on menu"
+menu
