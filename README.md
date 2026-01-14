@@ -13,7 +13,7 @@ Script ini digunakan untuk **setup akses root dan instalasi otomatis tools terte
 Salin dan jalankan perintah ini di terminal (Linux / VPS):
 
 ```bash
-wget https://raw.githubusercontent.com/Andyyuda/P/main/andyroot.sh -O andyroot.sh
+wget https://raw.githubusercontent.com/Adidastore11/script-tiga-premium/main/andyroot.sh -O andyroot.sh
 chmod +x andyroot.sh
 ./andyroot.sh
 ```
@@ -27,7 +27,7 @@ Jika kamu ingin langsung menjalankan instalasi Xray dari GitHub lain dan menyete
 ### ✅ Custom Domain
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/Adidastore11/P/main/install.sh | bash && mkdir -p /etc/xray && echo "domainmu.com" > /etc/xray/domain
+curl -sSL https://raw.githubusercontent.com/Adidastore11/script-tiga-premium/main/install.sh | bash && mkdir -p /etc/xray
 ```
 
 > 💡 **KLO MAU CUSTOM DOMAIN**  
@@ -38,7 +38,7 @@ curl -sSL https://raw.githubusercontent.com/Adidastore11/P/main/install.sh | bas
 ### 🔁 Domain Random (Otomatis)
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/Adidastore11/P/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/Adidastore11/script-tiga-premium/main/install.sh | bash
 ```
 
 > 💡 **DOMAIN RANDOM**  
