@@ -8,6 +8,34 @@ apt install shc -y
 
 bash <(curl -s https://raw.githubusercontent.com/Adidastore11/script-tiga-premium/main/izin/cek.sh)
 
+# =========================
+# SYNC IZIN GITHUB → LOCAL
+# =========================
+
+IZIN_DIR="/etc/izin"
+mkdir -p $IZIN_DIR
+
+MYIP=$(curl -s ipv4.icanhazip.com)
+DATA=$(curl -s https://raw.githubusercontent.com/Adidastore11/script-tiga-premium/main/izin/ip)
+
+LINE=$(echo "$DATA" | grep "$MYIP")
+
+if [[ -z "$LINE" ]]; then
+  echo "❌ IZIN VPS TIDAK DITEMUKAN"
+  exit 1
+fi
+
+NAME=$(echo "$LINE" | awk '{print $2}')
+EXP=$(echo "$LINE" | awk '{print $3}')
+
+TODAY=$(date +%Y-%m-%d)
+DAYS=$(( ( $(date -d "$EXP" +%s) - $(date -d "$TODAY" +%s) ) / 86400 ))
+
+echo "$NAME" > $IZIN_DIR/name
+echo "$EXP" > $IZIN_DIR/expired
+echo "$DAYS" > $IZIN_DIR/days
+
+
 
 NC='\033[0m'
 rbg='\033[41;37m'
