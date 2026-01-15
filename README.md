@@ -1,6 +1,6 @@
 # root all vps
 
-# 🛠️ andyroot.sh
+# 🛠️ root.sh
 
 Script ini digunakan untuk **setup akses root dan instalasi otomatis tools tertentu** seperti Xray dan konfigurasi domain di VPS Linux (Ubuntu/Debian).
 
