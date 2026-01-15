@@ -1,25 +1,19 @@
 #!/bin/bash
-# ====== CEK IZIN VPS ======
 
-# Ambil IP VPS
 MYIP=$(curl -s ipv4.icanhazip.com)
+TODAY=$(date +%Y-%m-%d)
 
-# Tanggal hari ini (epoch)
-TODAY_EPOCH=$(date +%s)
-
-# Ambil data izin dari GitHub
 DATA=$(curl -s https://raw.githubusercontent.com/Adidastore11/script-tiga-premium/main/izin/ip)
+
+IZIN_DIR="/etc/izin"
+mkdir -p $IZIN_DIR
 
 FOUND="NO"
 
 while read -r line; do
-  # skip baris kosong
   [[ -z "$line" ]] && continue
-
-  # hanya proses baris izin
   [[ "${line:0:1}" != "#" ]] && continue
 
-  # format: # nama YYYY-MM-DD IP
   NAME=$(echo "$line" | awk '{print $2}')
   EXP=$(echo "$line" | awk '{print $3}')
   IP=$(echo "$line" | awk '{print $4}')
@@ -27,28 +21,25 @@ while read -r line; do
   if [[ "$IP" == "$MYIP" ]]; then
     FOUND="YES"
 
-    EXP_EPOCH=$(date -d "$EXP" +%s 2>/dev/null)
-
-    if [[ -z "$EXP_EPOCH" ]]; then
-      echo "❌ FORMAT TANGGAL SALAH ($EXP)"
-      exit 1
-    fi
-
-    if [[ "$TODAY_EPOCH" -gt "$EXP_EPOCH" ]]; then
-      echo "❌ VPS EXPIRED ($EXP)"
+    if [[ "$(date -d "$TODAY" +%s)" -gt "$(date -d "$EXP" +%s)" ]]; then
+      echo "EXPIRED" > $IZIN_DIR/status
+      echo 0 > $IZIN_DIR/days
+      echo "$NAME" > $IZIN_DIR/name
+      echo "$EXP" > $IZIN_DIR/expired
       exit 1
     else
-      LEFT=$(( (EXP_EPOCH - TODAY_EPOCH) / 86400 ))
-      echo "✅ VPS AKTIF"
-      echo "Nama        : $NAME"
-      echo "Expired     : $EXP"
-      echo "Sisa Hari   : $LEFT Hari"
+      DAYS_LEFT=$(( ( $(date -d "$EXP" +%s) - $(date -d "$TODAY" +%s) ) / 86400 ))
+      echo "ACTIVE" > $IZIN_DIR/status
+      echo "$DAYS_LEFT" > $IZIN_DIR/days
+      echo "$NAME" > $IZIN_DIR/name
+      echo "$EXP" > $IZIN_DIR/expired
       exit 0
     fi
   fi
 done <<< "$DATA"
 
 if [[ "$FOUND" == "NO" ]]; then
-  echo "❌ VPS TIDAK TERDAFTAR DI IZIN"
+  echo "NOT_REGISTERED" > $IZIN_DIR/status
+  echo 0 > $IZIN_DIR/days
   exit 1
 fi
