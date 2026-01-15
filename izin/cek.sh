@@ -21,7 +21,7 @@ while read -r line; do
   if [[ "$IP" == "$MYIP" ]]; then
     FOUND="YES"
 
-    if [[ "$TODAY" > "$EXP" ]]; then
+    if [[ "$(date -d "$TODAY" +%s)" -gt "$(date -d "$EXP" +%s)" ]]; then
       echo "❌ VPS EXPIRED ($EXP)"
       exit 1
     else
