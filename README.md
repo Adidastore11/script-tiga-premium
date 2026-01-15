@@ -27,7 +27,7 @@ Jika kamu ingin langsung menjalankan instalasi Xray dari GitHub lain dan menyete
 ### ✅ Custom Domain
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/Adidastore11/script-tiga-premium/main/install.sh | bash && mkdir -p /etc/xray
+curl -sSL https://raw.githubusercontent.com/Adidastore11/script-tiga-premium/main/install.sh | bash && mkdir -p /etc/xray && echo "domainmu.com" > /etc/xray/domain
 ```
 
 > 💡 **KLO MAU CUSTOM DOMAIN**  
